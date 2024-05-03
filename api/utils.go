@@ -152,11 +152,11 @@ func SendEmail(account Account, maiTo []string, subject, body string) error {
 		smtpHost string
 		smtpPort int
 	)
-	if account.STMPHost == "" || account.STMPPort == 0 {
+	if account.SMTPHost == "" || account.SMTPPort == 0 {
 		smtpHost, smtpPort, err = ParseSMTPInfoByEmail(account.Email)
 	} else {
-		smtpHost = account.STMPHost
-		smtpPort = account.STMPPort
+		smtpHost = account.SMTPHost
+		smtpPort = account.SMTPPort
 	}
 	if err != nil {
 		return err
@@ -179,7 +179,7 @@ func SendEmail(account Account, maiTo []string, subject, body string) error {
 func ParseSMTPInfoByEmail(email string) (string, int, error) {
 	splitRes := strings.Split(email, "@")
 	if len(splitRes) <= 1 {
-		return "", 0, fmt.Errorf("Can't parse email suffix")
+		return "", 0, fmt.Errorf(ParseEmailError)
 	}
 	suffix := splitRes[len(splitRes)-1]
 	// 根据后缀获取SMTP 信息
@@ -188,6 +188,79 @@ func ParseSMTPInfoByEmail(email string) (string, int, error) {
 	if ok1 && ok2 {
 		return smtpHost, smtpPort, nil
 	} else {
-		return smtpHost, smtpPort, fmt.Errorf("Can't found target SMTP information for the email-suffix")
+		return smtpHost, smtpPort, fmt.Errorf(SMTPInfoNotFound)
 	}
+}
+
+// JobIsExistInDataBaseByName
+// 根据任务名判断此任务是否已经在数据库中
+func JobIsExistInDataBaseByName(jobName string) bool {
+	var jobGetFromDataBase Job
+	DataBase.Find(&jobGetFromDataBase, "name = ?", jobName)
+	if jobGetFromDataBase == (Job{}) {
+		return false
+	} else {
+		return true
+	}
+}
+
+// PrintAllJobs
+// 打印所有任务
+func PrintAllJobs() {
+	var jobs string
+	for _, corn := range Cron.Entries() {
+		jobs += fmt.Sprintf("%d %s", corn.ID, corn.Next.String())
+	}
+	glog.Infof("Cuurent all jobs: %s", jobs)
+}
+
+func GetJobEntryIDByJobID(id uint) (int, error) {
+	var err error
+	job := Job{}
+	err = DataBase.First(&job, id).Error
+	if err != nil {
+		return 0, err
+	}
+	return job.EntryID, nil
+}
+
+func JobIsExistInDataBaseByJobID(jobID uint) bool {
+	var jobGetFromDataBase Job
+	DataBase.Find(&jobGetFromDataBase, "id = ?", jobID)
+	if jobGetFromDataBase == (Job{}) {
+		return false
+	} else {
+		return true
+	}
+}
+
+// EmailIsValid
+// 测试邮箱的有效性， 是否可以连通
+func EmailIsValid(account Account) error {
+	var (
+		smtpHost string
+		smtpPort int
+		err      error
+	)
+	if account.SMTPHost == "" || account.SMTPPort == 0 {
+		// 未提供SMTP 信息, 根据邮箱后缀解析
+		smtpHost, smtpPort, err = ParseSMTPInfoByEmail(account.Email)
+	} else {
+		// 提供了 SMTP 信息
+		smtpHost = account.SMTPHost
+		smtpPort = account.SMTPPort
+	}
+	if err != nil {
+		return err
+	}
+	// 拨号， 向 SMTP 服务器进行身份验证
+	dialer := gomail.NewDialer(smtpHost, smtpPort, account.Email, account.Password)
+	dialer.TLSConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	_, err = dialer.Dial()
+	if err != nil {
+		return err
+	}
+	return nil
 }

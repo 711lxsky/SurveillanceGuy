@@ -21,3 +21,8 @@ var AuthenticateSecrets = map[string]string{
 }
 
 var LogFilePath = "/data/surveillance-guy.INFO"
+
+var (
+	ParseEmailError  = "Can't parse email suffix"
+	SMTPInfoNotFound = "Can't found target SMTP information for the email-suffix"
+)

@@ -7,11 +7,11 @@ import (
 
 type Account struct {
 	gorm.Model
-	Email    string `json:"email" gorm:"not null; unique"`     // 邮箱号
-	Password string `json:"password" gorm:"not null"`          // 邮箱密码/授权码
-	STMPHost string `json:"STMPHost" gorm:"type:varchar(256)"` // 邮箱 SMTP 服务器地址
-	STMPPort int    `json:"STMPPort" gorm:"type:int"`          // 邮箱 SMTP 服务器端口
-	Status   int    `json:"status" gorm:"type:int"`            // Email 账号状态(连通性), 是否可以发送邮件
+	Email    string `json:"email" gorm:"not null; unique"` // 邮箱号
+	Password string `json:"password" gorm:"not null"`      // 邮箱密码/授权码
+	SMTPHost string `json:"host" gorm:"type:varchar(256)"` // 邮箱 SMTP 服务器地址
+	SMTPPort int    `json:"port" gorm:"type:int"`          // 邮箱 SMTP 服务器端口
+	Status   int    `json:"status" gorm:"type:int"`        // Email 账号状态(连通性), 是否可以发送邮件
 }
 
 type Job struct {
@@ -89,7 +89,7 @@ var SMTPPort = map[string]int{
 }
 
 type JobRun struct {
-	job Job
+	Job Job
 }
 
 func (jobRun JobRun) Run() {
@@ -97,12 +97,12 @@ func (jobRun JobRun) Run() {
 	infoPrefix := "[Job#%d][%s]"
 	// 任务执行前后打印提示信息
 	glog.Infof("======= [Job#%d][%s][%s][Status: %d][EntryID: %d][OldValue: %s] Start...",
-		jobRun.job.ID, jobRun.job.Name, jobRun.job.Cron, jobRun.job.Status, jobRun.job.EntryID, jobRun.job.OldValue)
+		jobRun.Job.ID, jobRun.Job.Name, jobRun.Job.Cron, jobRun.Job.Status, jobRun.Job.EntryID, jobRun.Job.OldValue)
 	defer glog.Infof("-------- [Job#%d][%s][%s][Status: %d][EntryID: %d][OldValue: %s] End --------",
-		jobRun.job.ID, jobRun.job.Name, jobRun.job.Cron, jobRun.job.Status, jobRun.job.EntryID, jobRun.job.OldValue)
+		jobRun.Job.ID, jobRun.Job.Name, jobRun.Job.Cron, jobRun.Job.Status, jobRun.Job.EntryID, jobRun.Job.OldValue)
 	// 执行定时任务
-	err := WatchJob(jobRun.job)
+	err := WatchJob(jobRun.Job)
 	if err != nil {
-		glog.Errorf(infoPrefix+err.Error(), jobRun.job.ID, jobRun.job.Name)
+		glog.Errorf(infoPrefix+err.Error(), jobRun.Job.ID, jobRun.Job.Name)
 	}
 }
