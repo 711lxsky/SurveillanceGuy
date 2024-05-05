@@ -1,0 +1,39 @@
+{
+  "name": "surveillanceguy",
+  "version": "1.0.0",
+  "description": "A site to configure timed monitoring of target page tasks",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "author": "711lxsky",
+  "license": "YuleyoungZoe",
+  "dependencies": {
+    "@ant-design/icons": "^5.3.6",
+    "antcloud-react-crons": "^1.7.7",
+    "antd": "^5.17.0",
+    "axios": "^1.6.8",
+    "prop-types": "^15.8.1",
+    "qnn-react-cron": "^2.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "react-router-dom": "^6.23.0",
+    "react-scripts": "^5.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

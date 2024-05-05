@@ -1,0 +1,16 @@
+{
+    "short_name": "surveil-guy",
+    "name": "Surveillance-guy",
+    "icons": [
+      {
+        "src": "surveillance-guy.svg",
+        "type": "image/svg+xml",
+        "sizes": "any"
+      }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
+  }
+  
