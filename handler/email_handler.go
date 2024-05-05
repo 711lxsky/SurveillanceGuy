@@ -16,13 +16,13 @@ import (
 // @Tags 邮件测试
 // @Accept json
 // @Produce json
-// @Param account body Account true "电子邮件账户详情"
+// @Param account body model.Account true "电子邮件账户详情"
 // @Success 200 {object} gin.H "电子邮件账户身份验证成功，可以发送邮件"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "无法正确解析该 Email 账户的 SMTP 服务器主机和端口" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "没有该 Email 账户能够匹配的主机和端口号， 请手动输入" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "该 Email 账户身份认证失败， 无法使用" "reason" string "错误原因"
-// @Router /emails/test [post]
+// @Router /test-email [post]
 func TestEmail(context *gin.Context) {
 	var (
 		account model.Account

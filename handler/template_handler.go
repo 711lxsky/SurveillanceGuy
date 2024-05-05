@@ -17,7 +17,7 @@ import (
 // @Tags 任务模板管理
 // @Accept json
 // @Produce json
-// @Param template body Template true "任务模板详情"
+// @Param template body model.Template true "任务模板详情"
 // @Success 200 {object} gin.H "任务模板创建成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "任务模板创建失败" "reason" string "错误原因"
@@ -56,7 +56,7 @@ func AddTemplate(context *gin.Context) {
 // @Tags 任务模板管理
 // @Accept json
 // @Produce json
-// @Param template body Template true "任务模板ID"
+// @Param template body model.Template true "任务模板ID"
 // @Success 200 {object} gin.H "任务模板删除成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "任务模板删除失败" "reason" string "错误原因"
@@ -102,7 +102,7 @@ func DeleteTemplate(context *gin.Context) {
 // @Tags 任务模板管理
 // @Accept json
 // @Produce json
-// @Param template body Template true "任务模板详情"
+// @Param template body model.Template true "任务模板详情"
 // @Success 200 {object} gin.H "任务模板更新成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "任务模板更新失败" "reason" string "错误原因"

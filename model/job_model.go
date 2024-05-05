@@ -1,10 +1,7 @@
 package model
 
 import (
-	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
-
-	"surveillance-guy/util"
 )
 
 type Job struct {
@@ -19,25 +16,6 @@ type Job struct {
 	Email         string `json:"email" gorm:"not null"`              // 邮件通知接收人
 	Content       string `json:"content" gorm:"type:varchar(2048)"`  // 邮件通知内容
 	Status        int    `json:"status" gorm:"type:int"`             // 工作运行状态, 0: 运行中, 1: 停止
-}
-
-type JobRun struct {
-	Job Job
-}
-
-func (jobRun JobRun) Run() {
-	// Run 执行定时任务
-	infoPrefix := "[Job#%d][%s]"
-	// 任务执行前后打印提示信息
-	glog.Infof("======= [Job#%d][%s][%s][Status: %d][EntryID: %d][OldValue: %s] Start...",
-		jobRun.Job.ID, jobRun.Job.Name, jobRun.Job.Cron, jobRun.Job.Status, jobRun.Job.EntryID, jobRun.Job.OldValue)
-	defer glog.Infof("-------- [Job#%d][%s][%s][Status: %d][EntryID: %d][OldValue: %s] End --------",
-		jobRun.Job.ID, jobRun.Job.Name, jobRun.Job.Cron, jobRun.Job.Status, jobRun.Job.EntryID, jobRun.Job.OldValue)
-	// 执行定时任务
-	err := util.WatchJob(jobRun.Job)
-	if err != nil {
-		glog.Errorf(infoPrefix+err.Error(), jobRun.Job.ID, jobRun.Job.Name)
-	}
 }
 
 var (

@@ -17,11 +17,11 @@ import (
 // @Tags 邮件通知管理
 // @Accept json
 // @Produce json
-// @Param account body Account true "邮件通知账户详情"
+// @Param account body model.Account true "邮件通知账户详情"
 // @Success 200 {object} gin.H "邮件通知账户创建成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "邮件通知账户新建失败" "reason" string "错误原因"
-// @Router /accounts/add [post]
+// @Router /account [post]
 func AddAccount(context *gin.Context) {
 	var account model.Account
 	if err := context.BindJSON(&account); err != nil {
@@ -56,11 +56,11 @@ func AddAccount(context *gin.Context) {
 // @Tags 邮件通知管理
 // @Accept json
 // @Produce json
-// @Param account body Account true "邮件通知账户ID"
+// @Param account body model.Account true "邮件通知账户ID"
 // @Success 200 {object} gin.H "邮件通知账户删除成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "邮件通知账户删除失败" "reason" string "错误原因"
-// @Router /accounts/delete [delete]
+// @Router /account [delete]
 func DeleteAccount(context *gin.Context) {
 	var account model.Account
 	if err := context.BindJSON(&account); err != nil {
@@ -102,11 +102,11 @@ func DeleteAccount(context *gin.Context) {
 // @Tags 邮件通知管理
 // @Accept json
 // @Produce json
-// @Param account body Account true "邮件通知账户详情"
+// @Param account body model.Account true "邮件通知账户详情"
 // @Success 200 {object} gin.H "邮件通知账户更新成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "邮件通知账户更新失败" "reason" string "错误原因"
-// @Router /accounts/update [put]更新邮件通知账户
+// @Router /account [put]更新邮件通知账户
 func UpdateAccount(context *gin.Context) {
 	var account model.Account
 	if err := context.BindJSON(&account); err != nil {
@@ -144,7 +144,7 @@ func UpdateAccount(context *gin.Context) {
 // @Produce json
 // @Success 200 {object} gin.H "获取邮件通知账户列表成功" "data" []Account
 // @Failure 500 {object} gin.H "邮件通知账户列表获取失败" "reason" string "错误原因"
-// @Router /accounts/list [get]
+// @Router /account [get]
 func GetAllAccounts(context *gin.Context) {
 	var accounts []model.Account
 	err := config.DataBase.Find(&accounts).Error

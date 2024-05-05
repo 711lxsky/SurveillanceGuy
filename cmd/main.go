@@ -11,6 +11,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/robfig/cron/v3"
 
+	"surveillance-guy/cmd/docs"
 	"surveillance-guy/config"
 	"surveillance-guy/handler"
 	"surveillance-guy/model"
@@ -37,7 +38,7 @@ func SyncJobsInDataBase() error {
 			continue
 		}
 		// 在任务调度器中创建新任务
-		jobRun := model.JobRun{Job: job}
+		jobRun := util.JobRun{Job: job}
 		jobNewEntryID, err := config.Cron.AddJob(job.Cron, jobRun)
 		if err != nil {
 			return err
@@ -86,7 +87,7 @@ func main() {
 	}))
 
 	// 路由绑定
-	var v1 = engine.Group("/handler/v1")
+	var v1 = engine.Group("/api/v1")
 	if config.BasicAuth {
 		v1.Handlers = append(v1.Handlers, gin.BasicAuth(gin.Accounts(config.AuthenticateSecrets)))
 	}
@@ -106,8 +107,8 @@ func main() {
 		v1.PUT("/account", handler.UpdateAccount)
 		v1.GET("/account", handler.GetAllAccounts)
 		// 功能测试接口
-		v1.GET("/testpattern", handler.TestRegexPattern)
-		v1.POST("/testemail", handler.TestEmail)
+		v1.GET("/test-pattern", handler.TestRegexPattern)
+		v1.POST("/test-email", handler.TestEmail)
 		// 任务模板 CRUD
 		v1.POST("/template", handler.AddTemplate)
 		v1.DELETE("/template", handler.DeleteTemplate)
@@ -115,6 +116,7 @@ func main() {
 		v1.GET("/template", handler.GetAllTemplates)
 	}
 
+	docs.SwaggerInfo.BasePath = "/api/v1"
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	port := "8848"

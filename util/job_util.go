@@ -18,6 +18,25 @@ import (
 	"surveillance-guy/model"
 )
 
+type JobRun struct {
+	Job model.Job
+}
+
+func (jobRun JobRun) Run() {
+	// Run 执行定时任务
+	infoPrefix := "[Job#%d][%s]"
+	// 任务执行前后打印提示信息
+	glog.Infof("======= [Job#%d][%s][%s][Status: %d][EntryID: %d][OldValue: %s] Start...",
+		jobRun.Job.ID, jobRun.Job.Name, jobRun.Job.Cron, jobRun.Job.Status, jobRun.Job.EntryID, jobRun.Job.OldValue)
+	defer glog.Infof("-------- [Job#%d][%s][%s][Status: %d][EntryID: %d][OldValue: %s] End --------",
+		jobRun.Job.ID, jobRun.Job.Name, jobRun.Job.Cron, jobRun.Job.Status, jobRun.Job.EntryID, jobRun.Job.OldValue)
+	// 执行定时任务
+	err := WatchJob(jobRun.Job)
+	if err != nil {
+		glog.Errorf(infoPrefix+err.Error(), jobRun.Job.ID, jobRun.Job.Name)
+	}
+}
+
 func WatchJob(job model.Job) error {
 	// 爬取目标页面指定内容, 和数据库中对比, 如果有变动, 发送邮件通知
 	// 定时任务结束时输出缓冲区日志

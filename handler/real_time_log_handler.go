@@ -24,7 +24,7 @@ var upGrader = websocket.Upgrader{
 // @Tags 日志监控
 // @Accept */*
 // @Produce */*
-// @Router /log/tail [get]
+// @Router /websocket [get]
 func LogTail(context *gin.Context) {
 	// 升级 GET 请求为 Websocket 协议
 	websocket, err := upGrader.Upgrade(context.Writer, context.Request, nil)

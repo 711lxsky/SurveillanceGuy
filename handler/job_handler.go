@@ -20,7 +20,7 @@ import (
 // @Tags 定时任务管理
 // @Accept json
 // @Produce json
-// @Param job body Job true "定时任务详情"
+// @Param job body model.Job true "定时任务详情"
 // @Success 200 {object} gin.H "定时任务创建成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "该任务已经存在，请勿重复添加"
@@ -62,7 +62,7 @@ func ADDJob(context *gin.Context) {
 	}
 	glog.Info(job)
 	// 添加定时任务到 cron 调度器
-	jobRun := model.JobRun{Job: job}
+	jobRun := util.JobRun{Job: job}
 	jobEntryID, err := config.Cron.AddJob(job.Cron, jobRun)
 	if err != nil {
 		// 因为添加任务失败， 所以需要重新恢复数据， 即 revert
@@ -90,7 +90,7 @@ func ADDJob(context *gin.Context) {
 // @Tags 定时任务管理
 // @Accept json
 // @Produce json
-// @Param job body Job true "定时任务ID"
+// @Param job body model.Job true "定时任务ID"
 // @Success 200 {object} gin.H "定时任务删除成功"
 // @Failure 500 {object} gin.H "JSON解析错误" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "获取数据库中由指定 ID 指定的定时任务失败" "reason" string "错误原因"
@@ -154,7 +154,7 @@ func DeleteJob(context *gin.Context) {
 // @Tags 定时任务管理
 // @Accept json
 // @Produce json
-// @Param job body Job true "定时任务详情"
+// @Param job body model.Job true "定时任务详情"
 // @Success 200 {object} gin.H "定时任务更新成功"
 // @Failure 500 {object} gin.H "JSON解析失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "该任务不存在，请核验"
@@ -202,7 +202,7 @@ func UpdateJob(context *gin.Context) {
 	// 在调度器中更新对应任务
 	config.Cron.Remove(cron.EntryID(jobEntryID))
 	if job.Status == 0 {
-		jobRun := model.JobRun{Job: job}
+		jobRun := util.JobRun{Job: job}
 		newJobEntryID, err := config.Cron.AddJob(job.Cron, jobRun)
 		if err != nil {
 			context.AbortWithStatusJSON(

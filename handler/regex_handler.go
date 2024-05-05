@@ -24,7 +24,7 @@ import (
 // @Success 200 {object} gin.H "正则表达式测试成功，匹配到内容" "data" string
 // @Failure 500 {object} gin.H "获取页面 html 源码失败" "reason" string "错误原因"
 // @Failure 500 {object} gin.H "抓取规则无效" "reason" string "错误原因"
-// @Router /regex/test [get]测试正则表达式效果
+// @Router /test-email [get]测试正则表达式效果
 func TestRegexPattern(context *gin.Context) {
 	var (
 		testRes string
