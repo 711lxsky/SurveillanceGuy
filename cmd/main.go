@@ -11,14 +11,22 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/robfig/cron/v3"
 
-	"surveillance-guy/api"
+	"surveillance-guy/config"
+	"surveillance-guy/handler"
+	"surveillance-guy/model"
+	"surveillance-guy/util"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "surveillance-guy/cmd/docs"
 )
 
 // SyncJobsInDataBase
 // 同步数据库中的定时任务
 func SyncJobsInDataBase() error {
-	jobs := []api.Job{}
-	err := api.DataBase.Find(&jobs).Error
+	jobs := []model.Job{}
+	err := config.DataBase.Find(&jobs).Error
 	if err != nil {
 		return err
 	}
@@ -29,17 +37,17 @@ func SyncJobsInDataBase() error {
 			continue
 		}
 		// 在任务调度器中创建新任务
-		jobRun := api.JobRun{Job: job}
-		jobNewEntryID, err := api.Cron.AddJob(job.Cron, jobRun)
+		jobRun := model.JobRun{Job: job}
+		jobNewEntryID, err := config.Cron.AddJob(job.Cron, jobRun)
 		if err != nil {
 			return err
 		}
-		err = api.DataBase.Model(&job).Update("EntryID", jobNewEntryID).Error
+		err = config.DataBase.Model(&job).Update("EntryID", jobNewEntryID).Error
 		if err != nil {
 			return err
 		}
 	}
-	api.PrintAllJobs()
+	util.PrintAllJobs()
 	return nil
 }
 
@@ -50,22 +58,22 @@ func main() {
 	defer glog.Flush()
 	// 连接 sqlite3 数据库
 	var err error
-	api.DataBase, err = gorm.Open("sqlite3", "surveillance_guy.db")
+	config.DataBase, err = gorm.Open("sqlite3", "surveillance_guy.db")
 	if err != nil {
 		panic("failed to connect database: " + err.Error())
 	}
-	defer api.DataBase.Close()
+	defer config.DataBase.Close()
 	// 自动迁移模式， 保持更新到最新
 	// 仅创建表， 缺少列和索引， 不会改变现有列的类型或删除未使用的列以保护数据
-	api.DataBase.AutoMigrate(&api.Account{}, &api.Job{}, &api.Template{})
+	config.DataBase.AutoMigrate(&model.Account{}, &model.Job{}, &model.Template{})
 	// 创建并开始 cron 调度定时任务
-	api.Cron = cron.New()
+	config.Cron = cron.New()
 	// 同步数据库中存在的定时任务
 	err = SyncJobsInDataBase()
 	if err != nil {
 		glog.Error(err.Error())
 	}
-	api.Cron.Start()
+	config.Cron.Start()
 	// 创建 gin 实例
 	engine := gin.Default()
 	// 添加 CORS 中间件， 允许跨域请求访问
@@ -78,34 +86,37 @@ func main() {
 	}))
 
 	// 路由绑定
-	var v1 = engine.Group("/api/v1")
-	if api.BasicAuth {
-		v1.Handlers = append(v1.Handlers, gin.BasicAuth(gin.Accounts(api.AuthenticateSecrets)))
+	var v1 = engine.Group("/handler/v1")
+	if config.BasicAuth {
+		v1.Handlers = append(v1.Handlers, gin.BasicAuth(gin.Accounts(config.AuthenticateSecrets)))
 	}
 	{
 		// 认证校验
-		v1.GET("/secrets", api.AuthenticateHandler)
+		v1.GET("/secrets", handler.AuthenticateHandler)
 		// Websocket 日志持续输出
-		v1.GET("/websocket", api.LogTail)
+		v1.GET("/websocket", handler.LogTail)
 		// 定时任务 CRUD
-		v1.POST("/job", api.ADDJob)
-		v1.DELETE("/job", api.DeleteJob)
-		v1.PUT("/job", api.UpdateJob)
-		v1.GET("/job", api.GetAllAccounts)
+		v1.POST("/job", handler.ADDJob)
+		v1.DELETE("/job", handler.DeleteJob)
+		v1.PUT("/job", handler.UpdateJob)
+		v1.GET("/job", handler.GetAllAccounts)
 		// 邮箱账号 CRUD
-		v1.POST("/account", api.AddAccount)
-		v1.DELETE("/account", api.DeleteAccount)
-		v1.PUT("/account", api.UpdateAccount)
-		v1.GET("/account", api.GetAllAccounts)
+		v1.POST("/account", handler.AddAccount)
+		v1.DELETE("/account", handler.DeleteAccount)
+		v1.PUT("/account", handler.UpdateAccount)
+		v1.GET("/account", handler.GetAllAccounts)
 		// 功能测试接口
-		v1.GET("/testpattern", api.TestRegexPattern)
-		v1.POST("/testemail", api.TestEmail)
+		v1.GET("/testpattern", handler.TestRegexPattern)
+		v1.POST("/testemail", handler.TestEmail)
 		// 任务模板 CRUD
-		v1.POST("/template", api.AddTemplate)
-		v1.DELETE("/template", api.DeleteTemplate)
-		v1.PUT("/template", api.UpdateTemplate)
-		v1.GET("/template", api.GetAllTemplates)
+		v1.POST("/template", handler.AddTemplate)
+		v1.DELETE("/template", handler.DeleteTemplate)
+		v1.PUT("/template", handler.UpdateTemplate)
+		v1.GET("/template", handler.GetAllTemplates)
 	}
+
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	port := "8848"
 	engine.Run(":" + port)
 }

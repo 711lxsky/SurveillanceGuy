@@ -1,4 +1,4 @@
-package api
+package util
 
 import (
 	"bufio"
@@ -8,16 +8,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
-	"gopkg.in/gomail.v2"
+
+	"surveillance-guy/config"
+	"surveillance-guy/model"
 )
 
-func WatchJob(job Job) error {
+func WatchJob(job model.Job) error {
 	// 爬取目标页面指定内容, 和数据库中对比, 如果有变动, 发送邮件通知
 	// 定时任务结束时输出缓冲区日志
 	defer glog.Flush()
@@ -41,8 +42,8 @@ func WatchJob(job Job) error {
 	glog.Infof(infoPrefix+"Got the new value: %s", job.ID, job.Name, jobNewValue)
 	// 从数据库取出旧值
 	glog.Infof(infoPrefix+"Getting the old value from Database...", job.ID, job.Name)
-	tmpJob := Job{}
-	err = DataBase.First(&tmpJob, job.ID).Error
+	tmpJob := model.Job{}
+	err = config.DataBase.First(&tmpJob, job.ID).Error
 	if err != nil {
 		return err
 	}
@@ -57,12 +58,12 @@ func WatchJob(job Job) error {
 		// 不同, 更新数据库, 发送通知
 		glog.Infof(infoPrefix+"The new value is different from the old value, updating and sending email...", job.ID, job.Name)
 		// 更形
-		err = DataBase.Model(&job).Update("old_value", jobNewValue).Error
+		err = config.DataBase.Model(&job).Update("old_value", jobNewValue).Error
 		if err != nil {
 			return err
 		}
-		var account Account
-		err = DataBase.Where("email = ?", job.Email).First(&account).Error
+		var account model.Account
+		err = config.DataBase.Where("email = ?", job.Email).First(&account).Error
 		if err != nil {
 			return err
 		}
@@ -72,7 +73,7 @@ func WatchJob(job Job) error {
 		compileNameRes, _ := regexp.Compile("%name%")
 		job.Content = compileNameRes.ReplaceAllLiteralString(job.Content, job.Name)
 		// 发送通知
-		err = SendEmail(account, []string{job.Email}, fmt.Sprintf(EmailSubject, job.Name), job.Content)
+		err = SendEmail(account, []string{job.Email}, fmt.Sprintf(config.EmailSubject, job.Name), job.Content)
 		if err != nil {
 			return err
 		}
@@ -90,14 +91,14 @@ func GetHtmlByUrl(url string) ([]byte, error) {
 				InsecureSkipVerify: true,
 			},
 		},
-		Timeout: time.Duration(Timeout) * time.Second,
+		Timeout: time.Duration(config.Timeout) * time.Second,
 	}
 	// 构建请求
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return []byte{}, err
 	}
-	request.Header.Add("User-Agent", UserAgent)
+	request.Header.Add("User-Agent", config.UserAgent)
 	// 发起请求
 	response, err := client.Do(request)
 	if err != nil {
@@ -131,73 +132,12 @@ func DataEncoding(r io.Reader) ([]byte, error) {
 	return html, nil
 }
 
-// MatchTargetByRegexPattern
-// 根据正则表达式匹配目标内容
-func MatchTargetByRegexPattern(content []byte, pattern string) (string, error) {
-	compileRes, _ := regexp.Compile(pattern)
-	items := compileRes.FindSubmatch(content)
-	if len(items) >= 2 {
-		res := string(items[1])
-		return res, nil
-	} else {
-		return "", fmt.Errorf("Can't match target")
-	}
-}
-
-// SendEmail
-// 发送邮件
-func SendEmail(account Account, maiTo []string, subject, body string) error {
-	var (
-		err      error
-		smtpHost string
-		smtpPort int
-	)
-	if account.SMTPHost == "" || account.SMTPPort == 0 {
-		smtpHost, smtpPort, err = ParseSMTPInfoByEmail(account.Email)
-	} else {
-		smtpHost = account.SMTPHost
-		smtpPort = account.SMTPPort
-	}
-	if err != nil {
-		return err
-	}
-	// 构建邮件
-	newEmailMessage := gomail.NewMessage()
-	newEmailMessage.SetHeader("Form", account.Email)
-	newEmailMessage.SetHeader("To", maiTo...)
-	newEmailMessage.SetHeader("Subject", subject)
-	newEmailMessage.SetBody("text/html", body)
-	// 发送邮件
-	dialer := gomail.NewDialer(smtpHost, smtpPort, account.Email, account.Password)
-	dialer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-	err = dialer.DialAndSend(newEmailMessage)
-	return err
-}
-
-// ParseSMTPInfoByEmail
-// 根据邮箱后缀解析 SMTP 信息
-func ParseSMTPInfoByEmail(email string) (string, int, error) {
-	splitRes := strings.Split(email, "@")
-	if len(splitRes) <= 1 {
-		return "", 0, fmt.Errorf(ParseEmailError)
-	}
-	suffix := splitRes[len(splitRes)-1]
-	// 根据后缀获取SMTP 信息
-	smtpHost, ok1 := SMTPHost[suffix]
-	smtpPort, ok2 := SMTPPort[suffix]
-	if ok1 && ok2 {
-		return smtpHost, smtpPort, nil
-	} else {
-		return smtpHost, smtpPort, fmt.Errorf(SMTPInfoNotFound)
-	}
-}
-
 // JobIsExistInDataBaseByName
 // 根据任务名判断此任务是否已经在数据库中
 func JobIsExistInDataBaseByName(jobName string) bool {
-	var jobGetFromDataBase Job
-	DataBase.Find(&jobGetFromDataBase, "name = ?", jobName)
-	if jobGetFromDataBase == (Job{}) {
+	var jobGetFromDataBase model.Job
+	config.DataBase.Find(&jobGetFromDataBase, "name = ?", jobName)
+	if jobGetFromDataBase == (model.Job{}) {
 		return false
 	} else {
 		return true
@@ -208,7 +148,7 @@ func JobIsExistInDataBaseByName(jobName string) bool {
 // 打印所有任务
 func PrintAllJobs() {
 	var jobs string
-	for _, corn := range Cron.Entries() {
+	for _, corn := range config.Cron.Entries() {
 		jobs += fmt.Sprintf("%d %s", corn.ID, corn.Next.String())
 	}
 	glog.Infof("Cuurent all jobs: %s", jobs)
@@ -216,8 +156,8 @@ func PrintAllJobs() {
 
 func GetJobEntryIDByJobID(id uint) (int, error) {
 	var err error
-	job := Job{}
-	err = DataBase.First(&job, id).Error
+	job := model.Job{}
+	err = config.DataBase.First(&job, id).Error
 	if err != nil {
 		return 0, err
 	}
@@ -225,42 +165,11 @@ func GetJobEntryIDByJobID(id uint) (int, error) {
 }
 
 func JobIsExistInDataBaseByJobID(jobID uint) bool {
-	var jobGetFromDataBase Job
-	DataBase.Find(&jobGetFromDataBase, "id = ?", jobID)
-	if jobGetFromDataBase == (Job{}) {
+	var jobGetFromDataBase model.Job
+	config.DataBase.Find(&jobGetFromDataBase, "id = ?", jobID)
+	if jobGetFromDataBase == (model.Job{}) {
 		return false
 	} else {
 		return true
 	}
-}
-
-// EmailIsValid
-// 测试邮箱的有效性， 是否可以连通
-func EmailIsValid(account Account) error {
-	var (
-		smtpHost string
-		smtpPort int
-		err      error
-	)
-	if account.SMTPHost == "" || account.SMTPPort == 0 {
-		// 未提供SMTP 信息, 根据邮箱后缀解析
-		smtpHost, smtpPort, err = ParseSMTPInfoByEmail(account.Email)
-	} else {
-		// 提供了 SMTP 信息
-		smtpHost = account.SMTPHost
-		smtpPort = account.SMTPPort
-	}
-	if err != nil {
-		return err
-	}
-	// 拨号， 向 SMTP 服务器进行身份验证
-	dialer := gomail.NewDialer(smtpHost, smtpPort, account.Email, account.Password)
-	dialer.TLSConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	_, err = dialer.Dial()
-	if err != nil {
-		return err
-	}
-	return nil
 }
